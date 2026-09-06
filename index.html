@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlas Rent Optimizer</title>
+<meta name="description" content="Unofficial Atlas Earth calculator: parcel rent, boost tiers, and Super Rent Boost planning. Works offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B4744">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon-64.png" type="image/png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rent Optimizer">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+:root{
+  --ground:#E8EAE4; --surface:#FAFBF8; --surface-2:#F1F3ED; --sunken:#E1E5DD;
+  --ink:#17201C; --ink-2:#57615A; --ink-3:#8A938C;
+  --rule:#CFD5CC; --rule-strong:#B4BCB2;
+  --accent:#10605C; --accent-ink:#0B4744; --accent-soft:#DCEBE7;
+  --amber:#96671A; --amber-line:#C08A2E; --amber-soft:#F6EAD1;
+  --danger:#9C3624; --danger-soft:#F6DED8;
+  --common:#3F9A5E; --rare:#2F6FC4; --epic:#8E44B8; --legendary:#B0821F;
+  --shadow:0 1px 2px rgba(23,32,28,.06), 0 8px 24px -16px rgba(23,32,28,.28);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#111613; --surface:#1A211C; --surface-2:#222A24; --sunken:#0D1210;
+    --ink:#E9EEE8; --ink-2:#A5AFA7; --ink-3:#78827B;
+    --rule:#313B34; --rule-strong:#445047;
+    --accent:#59C4AC; --accent-ink:#8FE0CD; --accent-soft:#123330;
+    --amber:#DFAE52; --amber-line:#C08A2E; --amber-soft:#33280F;
+    --danger:#E4806B; --danger-soft:#3B1F19;
+    --common:#5FC182; --rare:#5E9BE8; --epic:#B778DC; --legendary:#D9A441;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#111613; --surface:#1A211C; --surface-2:#222A24; --sunken:#0D1210;
+  --ink:#E9EEE8; --ink-2:#A5AFA7; --ink-3:#78827B;
+  --rule:#313B34; --rule-strong:#445047;
+  --accent:#59C4AC; --accent-ink:#8FE0CD; --accent-soft:#123330;
+  --amber:#DFAE52; --amber-line:#C08A2E; --amber-soft:#33280F;
+  --danger:#E4806B; --danger-soft:#3B1F19;
+  --common:#5FC182; --rare:#5E9BE8; --epic:#B778DC; --legendary:#D9A441;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Archivo","Helvetica Neue",Arial,sans-serif;
+  font-size:15px; line-height:1.55; margin:0; -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%}
+.wrap{
+  max-width:1060px; margin:0 auto;
+  padding:calc(24px + env(safe-area-inset-top)) 20px calc(72px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:22px;
+}
+
+.masthead{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px 24px; padding-bottom:16px; border-bottom:2px solid var(--ink)}
+.masthead h1{font-family:"Fraunces",Georgia,serif; font-optical-sizing:auto; font-weight:600; font-size:clamp(30px,4.6vw,44px); line-height:1.02; margin:0; letter-spacing:-.018em; text-wrap:balance}
+.masthead .sub{margin:7px 0 0; color:var(--ink-2); font-size:14px; max-width:56ch}
+.tagrow{display:flex; align-items:center; gap:8px; margin-bottom:9px; flex-wrap:wrap}
+.tag{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:2px; background:var(--surface-2); border:1px solid var(--rule-strong); color:var(--ink-2)}
+.tag.warnish{background:var(--amber-soft); border-color:var(--amber-line); color:var(--amber)}
+.tag.live{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink)}
+.stamp{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); text-align:right; line-height:1.7}
+
+.panel{background:var(--surface); border:1px solid var(--rule); border-radius:3px; box-shadow:var(--shadow)}
+.panel > header{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px 18px; border-bottom:1px solid var(--rule); background:var(--surface-2)}
+.panel > header h2{margin:0; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2)}
+.panel > header .note{font-size:12px; color:var(--ink-3)}
+.cols{display:grid; grid-template-columns:minmax(0,1.12fr) minmax(0,1fr); gap:22px; align-items:start}
+@media (max-width:860px){ .cols{grid-template-columns:minmax(0,1fr)} }
+
+.exbanner{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:11px 16px; border:1px dashed var(--rule-strong); border-radius:3px; background:var(--surface-2); font-size:13px; color:var(--ink-2)}
+.exbanner b{color:var(--ink)}
+button.ghost{appearance:none; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; cursor:pointer; background:transparent; color:var(--accent-ink); border:1px solid var(--accent); padding:7px 12px; border-radius:2px}
+button.ghost:hover{background:var(--accent-soft)}
+button.ghost:disabled{opacity:.45; cursor:default}
+button.solid{appearance:none; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; cursor:pointer; background:var(--accent); color:var(--surface); border:1px solid var(--accent); padding:7px 12px; border-radius:2px}
+button.solid:hover{background:var(--accent-ink); border-color:var(--accent-ink)}
+
+.seg{display:inline-flex; border:1px solid var(--rule-strong); border-radius:3px; overflow:hidden}
+.seg button{appearance:none; border:0; background:var(--surface); color:var(--ink-2); cursor:pointer; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; padding:6px 11px}
+.seg button + button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--surface)}
+
+.sched{padding:6px 18px 16px}
+.row{display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--rule)}
+.row:last-of-type{border-bottom:0}
+.rowname{display:flex; align-items:center; gap:10px; min-width:0}
+.chip{width:11px; height:11px; border-radius:2px; flex:none; transform:rotate(45deg)}
+.rowname .nm{font-weight:500}
+.rowname .rt{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; color:var(--ink-3); white-space:nowrap}
+.stepper{display:flex; align-items:center; border:1px solid var(--rule-strong); border-radius:3px; overflow:hidden; background:var(--surface)}
+.stepper button{appearance:none; border:0; background:var(--surface-2); color:var(--ink-2); width:34px; height:36px; font-size:17px; line-height:1; cursor:pointer; font-family:inherit}
+.stepper button:hover{background:var(--accent-soft); color:var(--accent-ink)}
+.stepper input{appearance:none; -moz-appearance:textfield; border:0; background:transparent; color:var(--ink); width:78px; height:36px; text-align:center; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:14px; font-weight:500; font-variant-numeric:tabular-nums; border-left:1px solid var(--rule); border-right:1px solid var(--rule)}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+.totalrow{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-top:14px; padding-top:13px; border-top:2px solid var(--ink)}
+.totalrow .lbl{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2)}
+.totalrow .val{font-family:"Fraunces",Georgia,serif; font-size:30px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1}
+
+.cond{padding:16px 18px; display:flex; flex-direction:column; gap:18px}
+.field{display:flex; flex-direction:column; gap:8px}
+.field .top{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+.field label{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2)}
+.field .read{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums}
+.field .hint{font-size:12px; color:var(--ink-3); margin:0}
+input[type=range]{appearance:none; width:100%; height:26px; background:transparent; cursor:pointer; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:5px; border-radius:3px; background:var(--sunken); border:1px solid var(--rule)}
+input[type=range]::-moz-range-track{height:5px; border-radius:3px; background:var(--sunken); border:1px solid var(--rule)}
+input[type=range]::-webkit-slider-thumb{appearance:none; width:20px; height:20px; margin-top:-8px; border-radius:50%; background:var(--accent); border:2px solid var(--surface); box-shadow:0 0 0 1px var(--accent)}
+input[type=range]::-moz-range-thumb{width:20px; height:20px; border-radius:50%; background:var(--accent); border:2px solid var(--surface); box-shadow:0 0 0 1px var(--accent)}
+input[type=range].amber::-webkit-slider-thumb{background:var(--amber-line); box-shadow:0 0 0 1px var(--amber-line)}
+input[type=range].amber::-moz-range-thumb{background:var(--amber-line); box-shadow:0 0 0 1px var(--amber-line)}
+input[type=range]:disabled{opacity:.4; cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.toggle{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 15px; border:1px solid var(--rule-strong); border-radius:3px; background:var(--surface-2); cursor:pointer}
+.toggle.on{background:var(--amber-soft); border-color:var(--amber-line)}
+.toggle .tl{display:flex; flex-direction:column; gap:2px; min-width:0}
+.toggle .tt{font-weight:600; font-size:14px}
+.toggle .td{font-size:12px; color:var(--ink-2)}
+.toggle.on .td{color:var(--amber)}
+.switch{appearance:none; flex:none; width:46px; height:26px; border-radius:13px; cursor:pointer; background:var(--sunken); border:1px solid var(--rule-strong); position:relative; transition:background .15s, border-color .15s}
+.switch::after{content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.3); transition:transform .15s}
+.switch:checked{background:var(--amber-line); border-color:var(--amber-line)}
+.switch:checked::after{transform:translateX(20px)}
+
+.readout{padding:20px 18px; display:flex; flex-direction:column; gap:18px}
+.bignum{display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap}
+.bignum .money{font-family:"Fraunces",Georgia,serif; font-weight:700; font-size:clamp(42px,7vw,62px); line-height:.92; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.bignum .per{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); padding-bottom:8px}
+.subfig{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule)}
+.subfig > div{background:var(--surface); padding:11px 13px; display:flex; flex-direction:column; gap:3px}
+.subfig .k{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.subfig .v{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:17px; font-weight:700; font-variant-numeric:tabular-nums}
+
+.tier{padding:18px}
+.bands{display:flex; height:36px; border:1px solid var(--rule-strong); border-radius:3px; overflow:hidden; background:var(--sunken)}
+.band{display:flex; align-items:center; justify-content:center; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; font-weight:700; color:var(--ink-3); border-right:1px solid var(--rule); min-width:0; overflow:hidden}
+.band:last-child{border-right:0}
+.band.cur{background:var(--accent-soft); color:var(--accent-ink)}
+.axis{position:relative; height:48px; margin-top:6px}
+/* the cliff label sits a row lower so it can't collide with the "you" marker
+   when your count is close to the band ceiling */
+.mark.cliff{top:19px}
+.mark{position:absolute; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:2px}
+.mark .tick{width:1px; height:8px; background:var(--ink)}
+.mark .lab{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; font-weight:700; white-space:nowrap}
+.mark.you .tick{width:2px; background:var(--accent); height:12px}
+.mark.you .lab{color:var(--accent-ink); background:var(--accent-soft); padding:1px 5px; border-radius:2px}
+.mark.cliff .tick{background:var(--danger)}
+.mark.cliff .lab{color:var(--danger)}
+
+.callout{display:flex; gap:13px; padding:14px 16px; border-radius:3px; border:1px solid; align-items:flex-start}
+.callout .ic{font-family:"JetBrains Mono",ui-monospace,monospace; font-weight:700; font-size:13px; flex:none; line-height:1.5}
+.callout p{margin:0; font-size:13.5px; line-height:1.5}
+.callout p + p{margin-top:5px}
+.callout.warn{background:var(--danger-soft); border-color:var(--danger); color:var(--danger)}
+.callout.ok{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink)}
+.callout.amberish{background:var(--amber-soft); border-color:var(--amber-line); color:var(--amber)}
+.callout strong{color:inherit}
+
+.alloc{padding:8px 18px 18px}
+.abar{padding:13px 0; border-bottom:1px solid var(--rule)}
+.abar:last-child{border-bottom:0}
+.abar .lin{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:7px}
+.abar .nm{font-weight:600; font-size:14px}
+.abar .nm small{display:block; font-weight:400; font-size:12px; color:var(--ink-3); margin-top:1px}
+.abar .amt{font-family:"JetBrains Mono",ui-monospace,monospace; font-weight:700; font-size:16px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.abar .track{height:9px; background:var(--sunken); border:1px solid var(--rule); border-radius:2px; overflow:hidden}
+.abar .fill{height:100%; background:var(--accent); transition:width .28s ease}
+.abar.dead .fill{background:var(--danger)}
+.abar.meh .fill{background:var(--rule-strong)}
+.rank{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:2px 6px; border-radius:2px; margin-left:8px; vertical-align:2px; background:var(--accent); color:var(--surface); font-weight:700}
+
+/* ---- SRB planner ---- */
+.plan{padding:16px 18px; display:flex; flex-direction:column; gap:16px}
+.windowgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px}
+.windowgrid label{display:block; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); margin-bottom:5px}
+.windowgrid input,.windowgrid select{
+  width:100%; padding:9px 10px; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:13px;
+  color:var(--ink); background:var(--surface); border:1px solid var(--rule-strong); border-radius:3px;
+}
+.countdown{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; padding:15px 16px; border-radius:3px; background:var(--sunken); border:1px solid var(--rule)}
+.countdown .cdlab{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2)}
+.countdown .cdval{font-family:"Fraunces",Georgia,serif; font-size:clamp(30px,6vw,42px); font-weight:700; line-height:1; font-variant-numeric:tabular-nums}
+.countdown.hot{background:var(--amber-soft); border-color:var(--amber-line)}
+.countdown.hot .cdval,.countdown.hot .cdlab{color:var(--amber)}
+
+.tops{border:1px solid var(--rule); border-radius:3px; overflow:hidden}
+.top-item{display:flex; align-items:center; gap:12px; padding:10px 13px; border-bottom:1px solid var(--rule); background:var(--surface)}
+.top-item:last-child{border-bottom:0}
+.top-item.past{opacity:.45}
+.top-item input[type=checkbox]{appearance:none; width:19px; height:19px; flex:none; border:1px solid var(--rule-strong); border-radius:3px; background:var(--surface-2); cursor:pointer; position:relative}
+.top-item input[type=checkbox]:checked{background:var(--accent); border-color:var(--accent)}
+.top-item input[type=checkbox]:checked::after{content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--surface); font-size:12px; font-weight:700}
+.top-item .tnum{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; color:var(--ink-3); width:22px; flex:none}
+.top-item .ttime{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums}
+.top-item .tmeta{font-size:12px; color:var(--ink-3); margin-left:auto; text-align:right}
+.planactions{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.covline{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:13px; color:var(--ink-2)}
+.covline b{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:17px; color:var(--ink)}
+
+.how{padding:4px 18px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:0 26px}
+.how section{padding:15px 0; border-bottom:1px solid var(--rule)}
+.how h3{font-family:"Fraunces",Georgia,serif; font-size:17px; font-weight:600; margin:0 0 5px}
+.how p{margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.55}
+.how code{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; background:var(--surface-2); padding:1px 4px; border-radius:2px; color:var(--ink)}
+
+footer.foot{font-size:12px; color:var(--ink-3); line-height:1.65; border-top:1px solid var(--rule); padding-top:14px; display:flex; flex-direction:column; gap:8px}
+footer.foot code{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px}
+footer.foot strong{color:var(--ink-2)}
+[hidden]{display:none !important}
+@media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <div class="tagrow">
+        <span class="tag warnish">Unofficial fan tool</span>
+        <span class="tag">Nothing to sign in to</span>
+        <span class="tag live" id="offlinechip" hidden>Works offline</span>
+      </div>
+      <h1>Atlas Rent Optimizer</h1>
+      <p class="sub">Type in your parcels, badges and boost habits. See what your holdings actually earn, how close you are to a boost-tier drop, and how to cover a Super Rent Boost weekend.</p>
+    </div>
+    <div class="stamp">
+      Runs entirely<br>in your browser<br>
+      <span id="savechip">not saved yet</span>
+    </div>
+  </div>
+
+  <div class="exbanner" id="installbar" hidden>
+    <span id="installtext"><b>Install this on your phone.</b> It runs offline once installed.</span>
+    <button type="button" class="solid" id="btn-install">Install app</button>
+  </div>
+
+  <div class="exbanner" id="exbanner">
+    <span><b>These are example numbers.</b> Replace them with your own — the page remembers them on this device.</span>
+    <button type="button" class="ghost" id="btn-reset">Reset to example</button>
+  </div>
+
+  <div class="cols">
+    <section class="panel">
+      <header>
+        <h2>Your holdings</h2>
+        <span class="seg" role="group" aria-label="Parcel entry mode">
+          <button type="button" id="mode-exact" aria-pressed="true">By rarity</button>
+          <button type="button" id="mode-total" aria-pressed="false">Total only</button>
+        </span>
+      </header>
+      <div class="sched">
+        <div id="exact-rows">
+          <div class="row">
+            <div class="rowname"><span class="chip" style="background:var(--common)"></span>
+              <span><span class="nm">Common</span> <span class="rt">1.1 × 10⁻⁹ /sec</span></span></div>
+            <div class="stepper" data-k="common">
+              <button type="button" data-d="-1" aria-label="One fewer common parcel">−</button>
+              <input type="number" inputmode="numeric" min="0" step="1" id="in-common" aria-label="Common parcels">
+              <button type="button" data-d="1" aria-label="One more common parcel">+</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="rowname"><span class="chip" style="background:var(--rare)"></span>
+              <span><span class="nm">Rare</span> <span class="rt">1.6 × 10⁻⁹ /sec</span></span></div>
+            <div class="stepper" data-k="rare">
+              <button type="button" data-d="-1" aria-label="One fewer rare parcel">−</button>
+              <input type="number" inputmode="numeric" min="0" step="1" id="in-rare" aria-label="Rare parcels">
+              <button type="button" data-d="1" aria-label="One more rare parcel">+</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="rowname"><span class="chip" style="background:var(--epic)"></span>
+              <span><span class="nm">Epic</span> <span class="rt">2.2 × 10⁻⁹ /sec</span></span></div>
+            <div class="stepper" data-k="epic">
+              <button type="button" data-d="-1" aria-label="One fewer epic parcel">−</button>
+              <input type="number" inputmode="numeric" min="0" step="1" id="in-epic" aria-label="Epic parcels">
+              <button type="button" data-d="1" aria-label="One more epic parcel">+</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="rowname"><span class="chip" style="background:var(--legendary)"></span>
+              <span><span class="nm">Legendary</span> <span class="rt">4.4 × 10⁻⁹ /sec</span></span></div>
+            <div class="stepper" data-k="legendary">
+              <button type="button" data-d="-1" aria-label="One fewer legendary parcel">−</button>
+              <input type="number" inputmode="numeric" min="0" step="1" id="in-legendary" aria-label="Legendary parcels">
+              <button type="button" data-d="1" aria-label="One more legendary parcel">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="total-rows" hidden>
+          <div class="row">
+            <div class="rowname"><span class="chip" style="background:var(--ink-3)"></span>
+              <span><span class="nm">Total parcels</span> <span class="rt">avg draw 1.58 × 10⁻⁹ /sec</span></span></div>
+            <div class="stepper" data-k="total">
+              <button type="button" data-d="-10" aria-label="Ten fewer parcels">−</button>
+              <input type="number" inputmode="numeric" min="0" step="1" id="in-total" aria-label="Total parcels">
+              <button type="button" data-d="10" aria-label="Ten more parcels">+</button>
+            </div>
+          </div>
+          <p style="margin:4px 0 0; font-size:12px; color:var(--ink-3)">
+            Assumes the standard rarity draw — 50% common, 30% rare, 15% epic, 5% legendary. Switch to “By rarity” if you know your real split.
+          </p>
+        </div>
+
+        <div class="totalrow">
+          <span class="lbl">Parcels held</span>
+          <span class="val" id="out-total">—</span>
+        </div>
+
+        <div class="row" style="border-top:1px solid var(--rule); margin-top:10px; padding-top:14px">
+          <div class="rowname"><span class="chip" style="background:var(--accent)"></span>
+            <span><span class="nm">Badges</span> <span class="rt" id="out-badgelvl">—</span></span></div>
+          <div class="stepper" data-k="badges">
+            <button type="button" data-d="-1" aria-label="One fewer badge">−</button>
+            <input type="number" inputmode="numeric" min="0" step="1" id="in-badges" aria-label="Badges">
+            <button type="button" data-d="1" aria-label="One more badge">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="rowname"><span class="chip" style="background:var(--legendary)"></span>
+            <span><span class="nm">Atlas Bucks on hand</span> <span class="rt" id="out-buyable">—</span></span></div>
+          <div class="stepper" data-k="bucks">
+            <button type="button" data-d="-100" aria-label="100 fewer Atlas Bucks">−</button>
+            <input type="number" inputmode="numeric" min="0" step="10" id="in-bucks" aria-label="Atlas Bucks">
+            <button type="button" data-d="100" aria-label="100 more Atlas Bucks">+</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2>How you play</h2><span class="note">boost habits drive most of it</span></header>
+      <div class="cond">
+        <div class="field">
+          <div class="top"><label for="in-hours">Ad boost — hours per day</label><span class="read" id="out-hours">—</span></div>
+          <input type="range" id="in-hours" min="0" max="24" step="1">
+          <p class="hint">Each ad adds an hour. Free players stack up to 6 hours at a time, Explorer Club members 8 — so all-day coverage means topping up a few times daily.</p>
+        </div>
+        <label class="toggle" id="srb-toggle" for="in-srb">
+          <span class="tl"><span class="tt">Super Rent Boost events</span><span class="td" id="out-srbstate">—</span></span>
+          <input type="checkbox" class="switch" id="in-srb">
+        </label>
+        <div class="field">
+          <div class="top"><label for="in-cover">SRB window coverage</label><span class="read" id="out-cover">—</span></div>
+          <input type="range" class="amber" id="in-cover" min="0" max="100" step="5">
+          <p class="hint">Events have run Thu 4pm – Sat midnight CT, about 56 hours. Plan a specific weekend in the section below.</p>
+        </div>
+        <div class="field">
+          <div class="top"><label for="in-events">Events per year</label><span class="read" id="out-events">—</span></div>
+          <input type="range" class="amber" id="in-events" min="6" max="20" step="1">
+          <p class="hint">Historically every 2–4 weeks. The 50× applies to every parcel regardless of your ad-boost tier.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <header><h2>What that earns</h2><span class="note">virtual rent, before redemption</span></header>
+    <div class="readout">
+      <div class="bignum"><span class="money" id="out-year">—</span><span class="per">per year</span></div>
+      <div class="subfig">
+        <div><span class="k">Per day</span><span class="v" id="out-day">—</span></div>
+        <div><span class="k">Per month</span><span class="v" id="out-month">—</span></div>
+        <div><span class="k">Effective multiplier</span><span class="v" id="out-eff">—</span></div>
+        <div><span class="k">From SRB events</span><span class="v" id="out-srbshare">—</span></div>
+        <div><span class="k">Badge multiplier</span><span class="v" id="out-badgemult">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <header><h2>SRB session planner</h2><span class="note">the highest-value thing you can do</span></header>
+    <div class="plan">
+      <div class="windowgrid">
+        <div>
+          <label for="in-start">Window opens</label>
+          <input type="datetime-local" id="in-start">
+        </div>
+        <div>
+          <label for="in-end">Window closes</label>
+          <input type="datetime-local" id="in-end">
+        </div>
+        <div>
+          <label for="in-stack">Your stack length</label>
+          <select id="in-stack">
+            <option value="8">8 hours — Explorer Club</option>
+            <option value="6">6 hours — free tier</option>
+          </select>
+        </div>
+      </div>
+      <p style="margin:0; font-size:12px; color:var(--ink-3)">
+        Defaults to the next Thursday 4pm – Saturday midnight Central, the pattern events have followed. Adjust when the real dates are announced.
+      </p>
+
+      <div class="countdown" id="countdown">
+        <span class="cdlab" id="cd-label">Next top-up in</span>
+        <span class="cdval" id="cd-value">—</span>
+      </div>
+
+      <div class="tops" id="tops"></div>
+
+      <div class="covline">
+        <span>Coverage from the top-ups you've kept ticked</span>
+        <span><b id="plan-cov">—</b> <span id="plan-hours" style="font-size:12px"></span></span>
+      </div>
+
+      <div class="planactions">
+        <button type="button" class="solid" id="btn-notify">Enable reminders</button>
+        <button type="button" class="ghost" id="btn-ics">Download calendar reminders</button>
+        <button type="button" class="ghost" id="btn-applycov">Apply coverage to calculator</button>
+      </div>
+      <p style="margin:0; font-size:12px; color:var(--ink-3)" id="notifynote">
+        In-app reminders only fire while the app is open or recently backgrounded — phones suspend background timers aggressively. The calendar download is the reliable one: it drops each top-up into your phone's calendar with an alarm.
+      </p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <header><h2>Boost tier position</h2><span class="note">the multiplier falls as you own more</span></header>
+    <div class="tier">
+      <div class="bands" id="bands"></div>
+      <div class="axis" id="axis"></div>
+      <div id="cliffnote"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <header><h2>Where the next 1,000 AB goes</h2><span class="note">rent added per year</span></header>
+    <div class="alloc" id="alloc"></div>
+  </section>
+
+  <section class="panel">
+    <header><h2>How this works</h2><span class="note">three things set your rent</span></header>
+    <div class="how">
+      <section><h3>Where to find your numbers</h3><p>Parcel counts by rarity and your Atlas Bucks balance are on your profile screen. Badge count is in your passport. Nothing here connects to your account — you type the figures in.</p></section>
+      <section><h3>Rarity sets your base</h3><p>Every parcel earns a fixed trickle per second by rarity. That base is the one thing boosts and badges multiply, so a big portfolio of commons still starts small.</p></section>
+      <section><h3>Badges are a step function</h3><p>Multipliers land at <code>1</code>, <code>11</code>, <code>31</code>, <code>61</code> and <code>101</code> badges — <code>+5%</code> each. Badges between thresholds pay nothing, so buying one at a time only helps if it completes a step.</p></section>
+      <section><h3>The tier trap</h3><p>Ad-boost multipliers drop in bands as your parcel count grows — <code>30×</code> under 150 parcels down to <code>2×</code> past 1,500. Crossing a boundary can cut your income, so a well-timed stop beats buying whenever you can.</p></section>
+      <section><h3>SRB ignores your tier</h3><p>During a Super Rent Boost every player gets <code>50×</code> on all parcels up to 150,000, whatever band they're in. For heavy players these weekends can be half the year's rent — and they soften the tier trap considerably.</p></section>
+      <section><h3>What this can't tell you</h3><p>Nothing about whether the game is worth your time or money. It converts your inputs into rent, so you can compare choices — the entertainment value is yours to weigh.</p></section>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p style="margin:0"><strong>Unofficial and unaffiliated.</strong> This is a fan-built calculator. It is not made, endorsed, or reviewed by Atlas Reality, Inc., and has no connection to the ATLAS:EARTH app or your account.</p>
+    <p style="margin:0">Parcel rates, badge thresholds and boost-tier bands are community-documented rather than published by Atlas Reality, and the game's operator can change them at any time — treat every figure as an estimate. Virtual rent is redeemable under Atlas Reality's own terms, which they may modify without notice. Costs used: parcel <code>100 AB</code>, badge <code>200 AB</code>, legendary upgrade <code>2,500 AB</code>. New parcels are modelled at the average rarity draw, <code>1.58 × 10⁻⁹</code>/sec.</p>
+  </footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
