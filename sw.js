@@ -2,7 +2,7 @@
    Cache-first for the app shell so the calculator works with no connection at all.
    Bump CACHE_VERSION whenever you change any cached file. */
 
-var CACHE_VERSION = "aro-v1";
+var CACHE_VERSION = "aro-v2";
 var SHELL = [
   "./",
   "./index.html",
