@@ -14,7 +14,7 @@ index.html            markup + styles
 app.js                calculator, SRB planner, persistence, install/SW wiring
 sw.js                 service worker — offline cache
 manifest.webmanifest  install metadata
-icons/                app icons (any + maskable, 192 & 512, Apple touch)
+*.png                 app icons (any + maskable, 192 & 512, Apple touch, favicon)
 ```
 
 ## Deploying
@@ -45,7 +45,7 @@ connection.
 
 ## Updating after you edit a file
 
-Bump `CACHE_VERSION` in `sw.js` (`aro-v1` → `aro-v2`) and redeploy. Without that,
+Bump `CACHE_VERSION` in `sw.js` (`aro-v3` → `aro-v4`) and redeploy. Without that,
 returning visitors keep the cached copy. The worker calls `skipWaiting()` and
 `clients.claim()`, so a new version takes effect on the next load.
 

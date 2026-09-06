@@ -365,7 +365,7 @@
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: "notify", title: title, body: body, tag: tag });
       } else {
-        new Notification(title, { body: body, icon: "icons/icon-192.png", tag: tag });
+        new Notification(title, { body: body, icon: "icon-192.png", tag: tag });
       }
     } catch (e) { /* notifications unavailable — the calendar export still works */ }
   }

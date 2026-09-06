@@ -2,17 +2,17 @@
    Cache-first for the app shell so the calculator works with no connection at all.
    Bump CACHE_VERSION whenever you change any cached file. */
 
-var CACHE_VERSION = "aro-v2";
+var CACHE_VERSION = "aro-v3";
 var SHELL = [
   "./",
   "./index.html",
   "./app.js",
   "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/maskable-192.png",
-  "./icons/maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icon-192.png",
+  "./icon-512.png",
+  "./maskable-192.png",
+  "./maskable-512.png",
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", function (e) {
@@ -87,8 +87,8 @@ self.addEventListener("message", function (e) {
   if (d.type !== "notify") return;
   self.registration.showNotification(d.title || "Atlas Rent Optimizer", {
     body: d.body || "",
-    icon: "./icons/icon-192.png",
-    badge: "./icons/icon-192.png",
+    icon: "./icon-192.png",
+    badge: "./icon-192.png",
     tag: d.tag || "aro",
     renotify: true,
     requireInteraction: false
