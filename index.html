@@ -353,6 +353,10 @@ footer.foot strong{color:var(--ink-2)}
           <input type="range" id="in-hours" min="0" max="24" step="1">
           <p class="hint">Each ad adds an hour. Free players stack up to 6 hours at a time, Explorer Club members 8 — so all-day coverage means topping up a few times daily.</p>
         </div>
+        <label class="toggle" id="aec-toggle" for="in-aec">
+          <span class="tl"><span class="tt">Atlas Explorer Club</span><span class="td" id="out-aecstate">—</span></span>
+          <input type="checkbox" class="switch" id="in-aec">
+        </label>
         <label class="toggle" id="srb-toggle" for="in-srb">
           <span class="tl"><span class="tt">Super Rent Boost events</span><span class="td" id="out-srbstate">—</span></span>
           <input type="checkbox" class="switch" id="in-srb">
@@ -444,6 +448,32 @@ footer.foot strong{color:var(--ink-2)}
   <section class="panel">
     <header><h2>Where the next 1,000 AB goes</h2><span class="note">rent added per year</span></header>
     <div class="alloc" id="alloc"></div>
+  </section>
+
+  <section class="panel">
+    <header><h2>Bucks &amp; payback</h2><span class="note">what your AB income compounds into</span></header>
+    <div class="cond">
+      <div class="windowgrid">
+        <div>
+          <label for="in-abmonth">Atlas Bucks per month</label>
+          <input type="number" inputmode="numeric" min="0" step="50" id="in-abmonth">
+        </div>
+        <div>
+          <label for="in-subcost">Club fee per month</label>
+          <input type="number" inputmode="decimal" min="0" step="0.01" id="in-subcost">
+        </div>
+      </div>
+      <p style="margin:0; font-size:12px; color:var(--ink-3)" id="ab-hint">—</p>
+      <div class="subfig">
+        <div><span class="k">Bucks per year</span><span class="v" id="out-abyear">—</span></div>
+        <div><span class="k">Rent it adds</span><span class="v" id="out-abrent">—</span></div>
+        <div><span class="k">To tier cap</span><span class="v" id="out-tocap">—</span></div>
+        <div><span class="k">To next badge level</span><span class="v" id="out-tobadge">—</span></div>
+        <div><span class="k">Club cost per year</span><span class="v" id="out-subyear">—</span></div>
+      </div>
+      <div id="spendplan"></div>
+      <div id="paybacknote"></div>
+    </div>
   </section>
 
   <section class="panel">

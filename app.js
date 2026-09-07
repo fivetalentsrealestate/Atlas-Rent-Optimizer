@@ -25,8 +25,13 @@
   var EXAMPLE = {
     mode: "exact", common: 210, rare: 126, epic: 63, legendary: 21, total: 420,
     badges: 11, bucks: 2000, hours: 16, srb: true, cover: 80, events: 13,
-    touched: false, stack: 8, winStart: null, winEnd: null, skipped: []
+    touched: false, stack: 8, winStart: null, winEnd: null, skipped: [],
+    aec: true, abMonth: 3501, subCost: 49.99
   };
+
+  /* Explorer Club has no rent multiplier. It changes stack length (8h vs 6h)
+     and how fast Atlas Bucks accumulate from daily login rewards. */
+  var AEC_AB_MONTH = 3501, FREE_AB_MONTH = 152, AEC_MONTH_COST = 49.99;
   var state = {};
   Object.keys(EXAMPLE).forEach(function (k) { state[k] = EXAMPLE[k]; });
 
@@ -251,6 +256,114 @@
     });
   }
 
+  /* ------------------------------------------------------- bucks & payback */
+
+  function cloneState(s) {
+    var c = {};
+    Object.keys(s).forEach(function (k) { c[k] = Array.isArray(s[k]) ? s[k].slice() : s[k]; });
+    return c;
+  }
+  /* Add parcels at the standard rarity draw so the base rate stays honest. */
+  function addParcels(sim, k) {
+    if (sim.mode === "total") { sim.total += k; return; }
+    var c = Math.round(k * 0.50), r = Math.round(k * 0.30), e = Math.round(k * 0.15);
+    sim.common += c; sim.rare += r; sim.epic += e;
+    sim.legendary += Math.max(0, k - c - r - e);
+  }
+  /* Spend a pot of AB the way the allocation table says to: fill the current
+     boost tier, complete the next badge level, then keep buying only if that
+     actually helps — crossing a tier ceiling on a small pot is a net loss. */
+  function simulateSpend(s, ab) {
+    var sim = cloneState(s), before = annual(sim, 0), steps = [];
+    var n = parcelCount(sim), cur = tierOf(n);
+    if (cur[1] !== Infinity) {
+      var buy = Math.min(cur[1] - n, Math.floor(ab / AB_PARCEL));
+      if (buy > 0) { addParcels(sim, buy); ab -= buy * AB_PARCEL; steps.push(num(buy) + " parcels to the " + cur[2] + "× cap"); }
+    }
+    var step = nextBadgeStep(sim.badges);
+    if (step) {
+      var need = step - sim.badges, cost = need * AB_BADGE;
+      if (ab >= cost) { sim.badges = step; ab -= cost; steps.push(need + " badges to " + badgeOf(step)[2]); }
+    }
+    var more = Math.floor(ab / AB_PARCEL);
+    if (more > 0) {
+      var held = annual(sim, 0), test = cloneState(sim);
+      addParcels(test, more);
+      if (annual(test, 0) > held) {
+        sim = test; ab -= more * AB_PARCEL;
+        steps.push(num(more) + " more parcels");
+      } else {
+        steps.push("bank the remaining " + num(Math.round(ab)) + " AB rather than cross the tier line");
+      }
+    }
+    return { added: annual(sim, 0) - before, steps: steps };
+  }
+
+  function renderPayback(s) {
+    el("out-abyear").textContent = num(Math.round(s.abMonth * 12)) + " AB";
+    var sim = simulateSpend(s, s.abMonth * 12);
+    el("out-abrent").textContent = "+" + money(sim.added, 2) + "/yr";
+
+    var n = parcelCount(s), cur = tierOf(n);
+    var monthsFor = function (ab) { return s.abMonth > 0 ? ab / s.abMonth : Infinity; };
+    var fmtMonths = function (m) {
+      if (!isFinite(m)) return "never";
+      if (m < 1) return "< 1 mo";
+      return m < 24 ? Math.ceil(m) + " mo" : (m / 12).toFixed(1) + " yr";
+    };
+    el("out-tocap").textContent = (cur[1] === Infinity) ? "no cap"
+      : (cur[1] - n <= 0) ? "at cap"
+      : fmtMonths(monthsFor((cur[1] - n) * AB_PARCEL));
+    var step = nextBadgeStep(s.badges);
+    el("out-tobadge").textContent = step ? fmtMonths(monthsFor((step - s.badges) * AB_BADGE)) : "maxed";
+    el("out-subyear").textContent = s.aec ? money(s.subCost * 12, 0) : "—";
+
+    el("ab-hint").textContent = s.aec
+      ? "Explorer Club daily rewards come to about " + num(AEC_AB_MONTH) + " AB a month. Edit if yours differs."
+      : "Without the club the daily reward is about " + num(FREE_AB_MONTH) + " AB a month. Edit if yours differs.";
+
+    var plan = el("spendplan"); plan.textContent = "";
+    if (sim.steps.length) {
+      var p = document.createElement("p");
+      p.style.cssText = "margin:0; font-size:13px; color:var(--ink-2)";
+      p.innerHTML = "A year of bucks would go to: <strong style='color:var(--ink)'>" +
+        sim.steps.join("</strong>, then <strong style='color:var(--ink)'>") + "</strong>.";
+      plan.appendChild(p);
+    }
+
+    var host = el("paybacknote"); host.textContent = "";
+    var box = document.createElement("div");
+    var ic = document.createElement("span"); ic.className = "ic";
+    var body = document.createElement("div");
+    box.appendChild(ic); box.appendChild(body);
+
+    var deltaMonth = s.aec ? (s.abMonth - FREE_AB_MONTH) : (AEC_AB_MONTH - s.abMonth);
+    if (deltaMonth <= 0) {
+      box.className = "callout ok"; ic.textContent = "●";
+      body.innerHTML = "<p>At this bucks rate the club makes no difference to your income — the comparison only bites when membership actually changes how fast you accumulate.</p>";
+      host.appendChild(box); return;
+    }
+    var deltaRent = simulateSpend(s, deltaMonth * 12).added;
+    var costMonth = s.aec ? s.subCost : AEC_MONTH_COST;
+    var costYear = costMonth * 12;
+    var worth = deltaRent > costYear;
+    box.className = worth ? "callout ok" : "callout warn";
+    ic.textContent = worth ? "●" : "▲";
+    var lead = s.aec
+      ? "Your membership is worth <strong>" + num(Math.round(deltaMonth)) + " AB/month</strong> over the free tier."
+      : "Joining would add about <strong>" + num(Math.round(deltaMonth)) + " AB/month</strong>.";
+    var verdict = worth
+      ? "A year of that buys <strong>" + money(deltaRent, 2) + "/year</strong> of rent — permanently — against " +
+        money(costYear, 2) + "/year of subscription (" + money(costMonth, 2) + "/month). It pays for itself in <strong>" +
+        (costYear / deltaRent * 12 < 1 ? "under a month" : Math.ceil(costYear / deltaRent * 12) + " months") + "</strong>."
+      : "A year of that buys <strong>" + money(deltaRent, 2) + "/year</strong> of rent against <strong>" +
+        money(costYear, 2) + "/year</strong> of subscription (" + money(costMonth, 2) + "/month) — about <strong>" +
+        (costYear / deltaRent).toFixed(1) + "× what it returns</strong>. In pure rent terms it does not pay for itself.";
+    body.innerHTML = "<p>" + lead + " " + verdict + "</p>";
+    if (!worth) body.innerHTML += "<p>That's not automatically a reason to cancel — faster progression has its own value. It just isn't paying you back yet.</p>";
+    host.appendChild(box);
+  }
+
   /* --------------------------------------------------------- SRB planner UI */
 
   function windowDates() {
@@ -465,7 +578,15 @@
     el("out-srbshare").textContent = (srbPart + rest) > 0 ? Math.round(srbPart / (srbPart + rest) * 100) + "%" : "0%";
     el("out-badgemult").textContent = bl[1].toFixed(2) + "×";
 
-    renderBands(s); renderCliff(s); renderAlloc(s); renderPlanner();
+    el("in-aec").checked = s.aec;
+    el("in-abmonth").value = s.abMonth;
+    el("in-subcost").value = s.subCost;
+    el("aec-toggle").className = "toggle" + (s.aec ? " on" : "");
+    el("out-aecstate").textContent = s.aec
+      ? "Member · 8-hour stacking · bigger daily rewards"
+      : "Not a member · 6-hour stacking";
+
+    renderBands(s); renderCliff(s); renderAlloc(s); renderPlanner(); renderPayback(s);
   }
 
   /* ------------------------------------------------------------ persistence */
@@ -525,6 +646,26 @@
   el("in-cover").addEventListener("input", function () { state.cover = +this.value; touch(); });
   el("in-events").addEventListener("input", function () { state.events = +this.value; touch(); });
   el("in-srb").addEventListener("change", function () { state.srb = this.checked; touch(); });
+
+  /* Membership drives stack length and the default bucks rate; both stay editable. */
+  el("in-aec").addEventListener("change", function () {
+    state.aec = this.checked;
+    state.stack = state.aec ? 8 : 6;
+    state.abMonth = state.aec ? AEC_AB_MONTH : FREE_AB_MONTH;
+    state.subCost = state.aec ? AEC_MONTH_COST : 0;
+    state.skipped = [];
+    touch(); scheduleNotifications();
+  });
+  el("in-abmonth").addEventListener("input", function () {
+    var v = parseInt(this.value, 10);
+    state.abMonth = isNaN(v) ? 0 : Math.max(0, v);
+    touch();
+  });
+  el("in-subcost").addEventListener("input", function () {
+    var v = parseFloat(this.value);
+    state.subCost = isNaN(v) ? 0 : Math.max(0, v);
+    touch();
+  });
   el("mode-exact").addEventListener("click", function () {
     if (state.mode === "exact") return;
     var t = state.total;

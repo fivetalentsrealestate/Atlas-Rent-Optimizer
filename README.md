@@ -11,7 +11,7 @@ after the first load, so the app still works with no connection).
 
 ```
 index.html            markup + styles
-app.js                calculator, SRB planner, persistence, install/SW wiring
+app.js                calculator, SRB planner, bucks/payback, persistence, SW wiring
 sw.js                 service worker — offline cache
 manifest.webmanifest  install metadata
 *.png                 app icons (any + maskable, 192 & 512, Apple touch, favicon)
@@ -45,7 +45,7 @@ connection.
 
 ## Updating after you edit a file
 
-Bump `CACHE_VERSION` in `sw.js` (`aro-v3` → `aro-v4`) and redeploy. Without that,
+Bump `CACHE_VERSION` in `sw.js` (`aro-v5` → `aro-v6`) and redeploy. Without that,
 returning visitors keep the cached copy. The worker calls `skipWaiting()` and
 `clients.claim()`, so a new version takes effect on the next load.
 
@@ -69,6 +69,26 @@ The planner defaults to the next Thursday 4pm – Saturday midnight Central, the
 pattern events have historically followed, computed in that timezone with proper
 DST handling and displayed in the viewer's local time. Adjust the dates when the
 real ones are announced.
+
+## Explorer Club
+
+The membership toggle does NOT apply a rent multiplier — Explorer Club has none.
+It sets the boost stack length (8 hours vs 6) and the default Atlas Bucks per
+month, which feed the "Bucks & payback" panel: what a year of bucks compounds
+into, how long to reach your tier cap and next badge level, and whether the
+subscription pays for itself in rent at your portfolio size. Both the bucks rate
+and the fee stay editable. Defaults sit in `AEC_AB_MONTH` (3,501),
+`FREE_AB_MONTH` (152) and `AEC_MONTH_COST` (49.99) at the top of `app.js`.
+
+**The fee is MONTHLY.** $49.99/month is $599.88/year, and the field is labelled
+"Club fee per month" so nobody enters a monthly figure into an annual box. At a
+1,000-parcel portfolio the extra bucks are worth roughly $90/year of rent
+against that $600 — the panel says so plainly rather than flattering the
+subscription.
+
+The spend simulation deliberately refuses to buy past a boost-tier ceiling
+unless the pot is large enough to clear the dead zone beyond it — otherwise it
+reports banking the remainder, which is the correct advice.
 
 ## Data and privacy
 
