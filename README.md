@@ -3,9 +3,10 @@
 An unofficial Atlas Earth calculator. Works fully offline once installed, and
 plans coverage for Super Rent Boost weekends.
 
-**Not affiliated with Atlas Reality, Inc.** No account, no backend, no analytics,
-no network calls at runtime except the Google Fonts stylesheet (which is cached
-after the first load, so the app still works with no connection).
+**Not affiliated with Atlas Reality, Inc.** No account, no backend. At runtime it
+fetches the Google Fonts stylesheet (cached after first load) and pings an
+anonymous page counter — see below. Everything a visitor types stays in their
+own browser.
 
 ## Files
 
@@ -45,7 +46,7 @@ connection.
 
 ## Updating after you edit a file
 
-Bump `CACHE_VERSION` in `sw.js` (`aro-v5` → `aro-v6`) and redeploy. Without that,
+Bump `CACHE_VERSION` in `sw.js` (`aro-v6` → `aro-v7`) and redeploy. Without that,
 returning visitors keep the cached copy. The worker calls `skipWaiting()` and
 `clients.claim()`, so a new version takes effect on the next load.
 
@@ -89,6 +90,17 @@ subscription.
 The spend simulation deliberately refuses to buy past a boost-tier ceiling
 unless the pot is large enough to clear the dead zone beyond it — otherwise it
 reports banking the remainder, which is the correct advice.
+
+## The page counter
+
+`index.html` ends with a GoatCounter snippet. Replace `YOURCODE` with the site
+code from your GoatCounter signup, or delete those two lines to turn counting
+off. It is cookieless, records page views only, and sees nothing a visitor
+types. The footer discloses it — keep those in sync if you change it.
+
+Expect an undercount: once installed, the service worker serves the page from
+cache and offline visits never reach the counter at all. Treat the number as a
+floor.
 
 ## Data and privacy
 
