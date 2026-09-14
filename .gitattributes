@@ -1,0 +1,8 @@
+# Keep line endings identical on every machine: LF in the repository AND in the
+# working tree. Without this, Windows checks files out as CRLF while the repo
+# stores LF, so any non-Windows tool reports every line of every file as
+# changed — 1,500 lines of diff that mean nothing.
+* text=auto eol=lf
+
+# Binary assets: never transform these.
+*.png binary
